@@ -22,64 +22,63 @@ class PatientData(BaseModel):
     hba1c: Optional[float] = None
 
 # ==========================================================
-# 1. قواميس النموذج الأساسي (بدون سكر تراكمي)
+# 1. معاملات الخطر الكلي (Total CVD) - النموذج الأساسي
 # ==========================================================
 COEFS_FEMALE_BASE = {
-    "age": 0.719883, "non_hdl": 0.1176967, "hdl": -0.151185, "sbp_low": -0.0835358, "sbp_high": 0.3592852,
-    "diabetes": 0.8348585, "smoker": 0.4831078, "egfr_low": 0.4864619, "egfr_high": 0.0397779,
-    "bp_med": 0.2265309, "statin": -0.0592374, "treated_sbp_high": -0.0395762, "treated_non_hdl": 0.0844423,
-    "age_non_hdl": -0.0567839, "age_hdl": 0.0325692, "age_sbp_high": -0.1035985, "age_diabetes": -0.2417542,
-    "age_smoker": -0.0791142, "age_egfr_low": -0.1671492, "constant": -3.819975
+    "age": 0.7939329, "non_hdl": 0.0305239, "hdl": -0.1606857, "sbp_low": -0.2394003, "sbp_high": 0.3600781,
+    "diabetes": 0.8667604, "smoker": 0.5360739, "egfr_low": 0.6045917, "egfr_high": 0.0433769,
+    "bp_med": 0.3151672, "statin": -0.1477655, "treated_sbp_high": -0.0663612, "treated_non_hdl": 0.1197879,
+    "age_non_hdl": -0.0819715, "age_hdl": 0.0306769, "age_sbp_high": -0.0946348, "age_diabetes": -0.27057,
+    "age_smoker": -0.078715, "age_egfr_low": -0.1637806, "constant": -3.307728
 }
 
 COEFS_MALE_BASE = {
-    "age": 0.7099847, "non_hdl": 0.1658663, "hdl": -0.1144285, "sbp_low": -0.2837212, "sbp_high": 0.3239977,
-    "diabetes": 0.7189597, "smoker": 0.3956973, "egfr_low": 0.3690075, "egfr_high": 0.0203619,
-    "bp_med": 0.2036522, "statin": -0.0865581, "treated_sbp_high": -0.0322916, "treated_non_hdl": 0.114563,
-    "age_non_hdl": -0.0300005, "age_hdl": 0.0232747, "age_sbp_high": -0.0927024, "age_diabetes": -0.2018525,
-    "age_smoker": -0.0970527, "age_egfr_low": -0.1217081, "constant": -3.500655
+    "age": 0.7688528, "non_hdl": 0.0736174, "hdl": -0.0954431, "sbp_low": -0.4347345, "sbp_high": 0.3362658,
+    "diabetes": 0.7692857, "smoker": 0.4386871, "egfr_low": 0.5378979, "egfr_high": 0.0164827,
+    "bp_med": 0.288879, "statin": -0.1337349, "treated_sbp_high": -0.0475924, "treated_non_hdl": 0.150273,
+    "age_non_hdl": -0.0517874, "age_hdl": 0.0191169, "age_sbp_high": -0.1049477, "age_diabetes": -0.2251948,
+    "age_smoker": -0.0895067, "age_egfr_low": -0.1543702, "constant": -3.031168
 }
 
 # ==========================================================
-# 2. قواميس نموذج السكر التراكمي (Enhanced HbA1c Model)
+# 2. معاملات الخطر الكلي (Total CVD) - نموذج السكر التراكمي
 # ==========================================================
 COEFS_FEMALE_HBA1C = {
-    "age": 0.7111831, "non_hdl": 0.106797, "hdl": -0.1425745, "sbp_low": -0.0736824, "sbp_high": 0.3480844,
-    "diabetes": 0.5112951, "smoker": 0.4880292, "egfr_low": 0.4754997, "egfr_high": 0.0438132,
-    "bp_med": 0.2259093, "statin": -0.0648872, "treated_sbp_high": -0.0437645, "treated_non_hdl": 0.0697082,
-    "age_non_hdl": -0.0506382, "age_hdl": 0.0327475, "age_sbp_high": -0.0996442, "age_diabetes": -0.1924338,
-    "age_smoker": -0.0803539, "age_egfr_low": -0.1682586, "hba1c_dm": 0.1339055, "hba1c_no_dm": 0.1596461,
-    "constant": -3.838746
+    "age": 0.7858178, "non_hdl": 0.0194438, "hdl": -0.1521964, "sbp_low": -0.2296681, "sbp_high": 0.3465777,
+    "diabetes": 0.5366241, "smoker": 0.5411682, "egfr_low": 0.5931898, "egfr_high": 0.0472458,
+    "bp_med": 0.3158567, "statin": -0.1535174, "treated_sbp_high": -0.0687752, "treated_non_hdl": 0.1054746,
+    "age_non_hdl": -0.0761119, "age_hdl": 0.0307469, "age_sbp_high": -0.0905966, "age_diabetes": -0.2241857,
+    "age_smoker": -0.080186, "age_egfr_low": -0.1667286, "hba1c_dm": 0.1338348, "hba1c_no_dm": 0.1622409,
+    "constant": -3.306162
 }
 
 COEFS_MALE_HBA1C = {
-    "age": 0.7064146, "non_hdl": 0.1532267, "hdl": -0.1082166, "sbp_low": -0.2675288, "sbp_high": 0.3173809,
-    "diabetes": 0.432604, "smoker": 0.3958842, "egfr_low": 0.3665014, "egfr_high": 0.0250243,
-    "bp_med": 0.2061158, "statin": -0.0899988, "treated_sbp_high": -0.0334959, "treated_non_hdl": 0.1034168,
-    "age_non_hdl": -0.0255406, "age_hdl": 0.0247538, "age_sbp_high": -0.0917441, "age_diabetes": -0.1499195,
-    "age_smoker": -0.098089, "age_egfr_low": -0.1305231, "hba1c_dm": 0.1157161, "hba1c_no_dm": 0.1288303,
-    "constant": -3.51835
+    "age": 0.7699177, "non_hdl": 0.0605093, "hdl": -0.0888525, "sbp_low": -0.417713, "sbp_high": 0.3288657,
+    "diabetes": 0.4759471, "smoker": 0.4385663, "egfr_low": 0.5334616, "egfr_high": 0.0206431,
+    "bp_med": 0.2917524, "statin": -0.1383313, "treated_sbp_high": -0.0482622, "treated_non_hdl": 0.1393796,
+    "age_non_hdl": -0.0463501, "age_hdl": 0.0205926, "age_sbp_high": -0.1037717, "age_diabetes": -0.1737697,
+    "age_smoker": -0.0915839, "age_egfr_low": -0.1637039, "hba1c_dm": 0.13159, "hba1c_no_dm": 0.1295185,
+    "constant": -3.040901
 }
 
-def compute_prevent_ascvd(data: PatientData) -> float:
-    # تحديد ما إذا كان التطبيق سيستخدم نموذج التراكمي أم النموذج الأساسي
+def compute_prevent_total_cvd(data: PatientData) -> float:
     use_hba1c_model = data.hba1c is not None
-    
-    if data.sex.lower() == "female":
-        coefs = COEFS_FEMALE_HBA1C if use_hba1c_model else COEFS_FEMALE_BASE
-    else:
-        coefs = COEFS_MALE_HBA1C if use_hba1c_model else COEFS_MALE_BASE
-    
-    # التمركز والتحويلات
+    coefs = COEFS_FEMALE_HBA1C if (use_hba1c_model and data.sex.lower() == "female") else \
+            COEFS_MALE_HBA1C if (use_hba1c_model and data.sex.lower() == "male") else \
+            COEFS_FEMALE_BASE if data.sex.lower() == "female" else COEFS_MALE_BASE
+
+    # تحويل القياسات حسب ملحق الجبر الرياضي (Appendix 4)
     age_c = (data.age - 55.0) / 10.0
-    tc_mmol = data.total_chol * 0.02586
-    hdl_mmol = data.hdl * 0.02586
+    tc_mmol = data.total_chol * 0.02586 if data.total_chol > 30 else data.total_chol
+    hdl_mmol = data.hdl * 0.02586 if data.hdl > 10 else data.hdl
+    
     non_hdl_c = (tc_mmol - hdl_mmol) - 3.5
     hdl_c_main = (hdl_mmol - 1.3) / 0.3
-    hdl_c_inter = (hdl_mmol - 1.3) / 1.0
+    hdl_c_inter = (hdl_mmol - 1.3) / 1.0  # التفاعل لا يُقسم على 0.3
     
     sbp_low = (min(data.sbp, 110.0) - 110.0) / 20.0
     sbp_high = (max(data.sbp, 110.0) - 130.0) / 20.0
+    
     egfr_low = (min(data.egfr, 60.0) - 60.0) / -15.0
     egfr_high = (max(data.egfr, 60.0) - 90.0) / -15.0
     
@@ -88,7 +87,7 @@ def compute_prevent_ascvd(data: PatientData) -> float:
     is_bp_med = 1 if data.bp_med else 0
     is_statin = 1 if data.statin else 0
     
-    # حساب اللوغاريتم الأرجحي بناءً على القاموس المختار
+    # حساب اللوغاريتم الأرجحي (Log-Odds)
     log_odds = coefs["constant"]
     log_odds += coefs["age"] * age_c
     log_odds += coefs["non_hdl"] * non_hdl_c
@@ -111,7 +110,7 @@ def compute_prevent_ascvd(data: PatientData) -> float:
     log_odds += coefs["age_smoker"] * (age_c * is_smoker)
     log_odds += coefs["age_egfr_low"] * (age_c * egfr_low)
 
-    # حساب إضافي خاص فقط إذا توفر السكر التراكمي
+    # حساب التراكمي إن وُجد
     if use_hba1c_model:
         hba1c_c = data.hba1c - 5.5
         if data.diabetes:
@@ -127,7 +126,7 @@ def calculate_risk(patient: PatientData):
     try:
         if not (30 <= patient.age <= 79):
             raise HTTPException(status_code=400, detail="العمر غير مدعوم")
-        risk = compute_prevent_ascvd(patient)
+        risk = compute_prevent_total_cvd(patient)
         return {"prevent_10yr_risk_percent": risk}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
