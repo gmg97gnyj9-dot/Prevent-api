@@ -22,37 +22,57 @@ class PatientData(BaseModel):
     hba1c: Optional[float] = None
 
 # ==========================================================
-# معاملات الخطر الكلي (Total CVD) - النموذج الشامل الكامل (Full Model)
-# مأخوذة حرفياً من Table S12.E
+# معاملات الخطر الكلي (Total CVD) - النموذج الأساسي (Table S12A)
 # ==========================================================
-
-COEFS_FULL_WOMEN = {
-    "constant": -3.860385, "age": 0.7716794, "non_hdl": 0.0062109, "hdl": -0.1547756,
-    "sbp_low": -0.1933123, "sbp_high": 0.3071217, "dm": 0.496753, "smoker": 0.466605,
-    "egfr_low": 0.4780697, "egfr_high": 0.0529077, "bp_med": 0.3034892, "statin": -0.1556524,
-    "treated_sbp_high": -0.0667026, "treated_non_hdl": 0.1061825, "age_non_hdl": -0.0742271,
-    "age_hdl": 0.0288245, "age_sbp_high": -0.0875188, "age_dm": -0.2267102, "age_smoker": -0.0676125,
-    "age_egfr_low": -0.1493231, "missing_sdi": 0.1804508, "missing_acr": 0.0198413,
-    "hba1c_dm": 0.1298513, "hba1c_no_dm": 0.1412555, "missing_hba1c": -0.0031658
+COEFS_BASE_WOMEN = {
+    "constant": -3.307728, "age": 0.7939329, "non_hdl": 0.0305239, "hdl": -0.1606857,
+    "sbp_low": -0.2394003, "sbp_high": 0.3600781, "dm": 0.8667604, "smoker": 0.5360739,
+    "egfr_low": 0.6045917, "egfr_high": 0.0433769, "bp_med": 0.3151672, "statin": -0.1477655,
+    "treated_sbp_high": -0.0663612, "treated_non_hdl": 0.1197879, "age_non_hdl": -0.0819715,
+    "age_hdl": 0.0306769, "age_sbp_high": -0.0946348, "age_dm": -0.27057, "age_smoker": -0.078715,
+    "age_egfr_low": -0.1637806
 }
 
-COEFS_FULL_MEN = {
-    "constant": -3.631387, "age": 0.7847578, "non_hdl": 0.0534485, "hdl": -0.0911282,
-    "sbp_low": -0.4921973, "sbp_high": 0.2972415, "dm": 0.4527054, "smoker": 0.3726641,
-    "egfr_low": 0.3886854, "egfr_high": 0.0081661, "bp_med": 0.2508052, "statin": -0.1538484,
-    "treated_sbp_high": -0.0474695, "treated_non_hdl": 0.1415382, "age_non_hdl": -0.0436455,
-    "age_hdl": 0.0199549, "age_sbp_high": -0.1022686, "age_dm": -0.1762507, "age_smoker": -0.0715873,
-    "age_egfr_low": -0.1428668, "missing_sdi": 0.144759, "missing_acr": 0.1095674,
-    "hba1c_dm": 0.1165698, "hba1c_no_dm": 0.1048297, "missing_hba1c": -0.0230072
+COEFS_BASE_MEN = {
+    "constant": -3.031168, "age": 0.7688528, "non_hdl": 0.0736174, "hdl": -0.0954431,
+    "sbp_low": -0.4347345, "sbp_high": 0.3362658, "dm": 0.7692857, "smoker": 0.4386871,
+    "egfr_low": 0.5378979, "egfr_high": 0.0164827, "bp_med": 0.288879, "statin": -0.1337349,
+    "treated_sbp_high": -0.0475924, "treated_non_hdl": 0.150273, "age_non_hdl": -0.0517874,
+    "age_hdl": 0.0191169, "age_sbp_high": -0.1049477, "age_dm": -0.2251948, "age_smoker": -0.0895067,
+    "age_egfr_low": -0.1543702
 }
 
-def compute_prevent_total_cvd_full(data: PatientData) -> float:
-    coefs = COEFS_FULL_WOMEN if data.sex.lower() == "female" else COEFS_FULL_MEN
+# ==========================================================
+# معاملات الخطر الكلي (Total CVD) - نموذج التراكمي (Table S12C)
+# ==========================================================
+COEFS_HBA1C_WOMEN = {
+    "constant": -3.306162, "age": 0.7858178, "non_hdl": 0.0194438, "hdl": -0.1521964,
+    "sbp_low": -0.2296681, "sbp_high": 0.3465777, "dm": 0.5366241, "smoker": 0.5411682,
+    "egfr_low": 0.5931898, "egfr_high": 0.0472458, "bp_med": 0.3158567, "statin": -0.1535174,
+    "treated_sbp_high": -0.0687752, "treated_non_hdl": 0.1054746, "age_non_hdl": -0.0761119,
+    "age_hdl": 0.0307469, "age_sbp_high": -0.0905966, "age_dm": -0.2241857, "age_smoker": -0.080186,
+    "age_egfr_low": -0.1667286, "hba1c_dm": 0.1338348, "hba1c_no_dm": 0.1622409
+}
 
-    # 1. التمركز (Centering) حسب الجدول
+COEFS_HBA1C_MEN = {
+    "constant": -3.040901, "age": 0.7699177, "non_hdl": 0.0605093, "hdl": -0.0888525,
+    "sbp_low": -0.417713, "sbp_high": 0.3288657, "dm": 0.4759471, "smoker": 0.4385663,
+    "egfr_low": 0.5334616, "egfr_high": 0.0206431, "bp_med": 0.2917524, "statin": -0.1383313,
+    "treated_sbp_high": -0.0482622, "treated_non_hdl": 0.1393796, "age_non_hdl": -0.0463501,
+    "age_hdl": 0.0205926, "age_sbp_high": -0.1037717, "age_dm": -0.1737697, "age_smoker": -0.0915839,
+    "age_egfr_low": -0.1637039, "hba1c_dm": 0.13159, "hba1c_no_dm": 0.1295185
+}
+
+def compute_prevent_total_cvd(data: PatientData) -> float:
+    use_hba1c = data.hba1c is not None
+
+    if data.sex.lower() == "female":
+        coefs = COEFS_HBA1C_WOMEN if use_hba1c else COEFS_BASE_WOMEN
+    else:
+        coefs = COEFS_HBA1C_MEN if use_hba1c else COEFS_BASE_MEN
+
+    # التمركز الجبري الدقيق 
     age_c = (data.age - 55.0) / 10.0
-    
-    # دعم إدخال الكوليسترول بوحدة mmol/L أو mg/dL
     tc_mmol = data.total_chol * 0.02586 if data.total_chol > 30 else data.total_chol
     hdl_mmol = data.hdl * 0.02586 if data.hdl > 10 else data.hdl
     
@@ -71,7 +91,7 @@ def compute_prevent_total_cvd_full(data: PatientData) -> float:
     is_bp_med = 1 if data.bp_med else 0
     is_statin = 1 if data.statin else 0
     
-    # 2. حساب اللوغاريتم الأرجحي (Log-Odds) للمتغيرات الأساسية
+    # حساب اللوغاريتم الأرجحي (Log-Odds)
     log_odds = coefs["constant"]
     log_odds += coefs["age"] * age_c
     log_odds += coefs["non_hdl"] * non_hdl_c
@@ -85,7 +105,6 @@ def compute_prevent_total_cvd_full(data: PatientData) -> float:
     log_odds += coefs["bp_med"] * is_bp_med
     log_odds += coefs["statin"] * is_statin
     
-    # التفاعلات المتقاطعة (Interactions)
     log_odds += coefs["treated_sbp_high"] * (is_bp_med * sbp_high)
     log_odds += coefs["treated_non_hdl"] * (is_statin * non_hdl_c)
     log_odds += coefs["age_non_hdl"] * (age_c * non_hdl_c)
@@ -95,23 +114,14 @@ def compute_prevent_total_cvd_full(data: PatientData) -> float:
     log_odds += coefs["age_smoker"] * (age_c * is_smoker)
     log_odds += coefs["age_egfr_low"] * (age_c * egfr_low)
 
-    # 3. ضرائب البيانات المفقودة (سر MDCalc)
-    # بافتراض أن الزلال والرمز البريدي دائماً مفقودة حسب طلبك
-    log_odds += coefs["missing_sdi"]
-    log_odds += coefs["missing_acr"]
-
-    # 4. حساب السكر التراكمي (متمركز عند 5.3 كما ورد في ملاحظة الجدول)
-    if data.hba1c is not None:
+    # حساب التراكمي في حال توفره (متمركز عند 5.3)
+    if use_hba1c:
         hba1c_c = data.hba1c - 5.3
         if data.diabetes:
             log_odds += coefs["hba1c_dm"] * hba1c_c
         else:
             log_odds += coefs["hba1c_no_dm"] * hba1c_c
-    else:
-        # إذا لم يدخل الطبيب السكر التراكمي، تفرض ضريبة "التراكمي المفقود"
-        log_odds += coefs["missing_hba1c"]
             
-    # 5. المعادلة النهائية
     risk = 1.0 / (1.0 + math.exp(-log_odds))
     return round(risk * 100, 2)
 
@@ -120,7 +130,7 @@ def calculate_risk(patient: PatientData):
     try:
         if not (30 <= patient.age <= 79):
             raise HTTPException(status_code=400, detail="العمر غير مدعوم")
-        risk = compute_prevent_total_cvd_full(patient)
+        risk = compute_prevent_total_cvd(patient)
         return {"prevent_10yr_risk_percent": risk}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
