@@ -22,7 +22,7 @@ class PatientData(BaseModel):
     hba1c: Optional[float] = None
 
 # ==========================================================
-# 1. معاملات النموذج الأساسي (Total CVD - Base Model) - Table S12A
+# 1. معاملات النموذج الأساسي (Total CVD - Base Model)
 # ==========================================================
 COEFS_BASE = {
     "female": {
@@ -44,7 +44,7 @@ COEFS_BASE = {
 }
 
 # ==========================================================
-# 2. معاملات نموذج التراكمي (Total CVD - HbA1c Model) - Table S12C
+# 2. معاملات نموذج التراكمي (Total CVD - HbA1c Model)
 # ==========================================================
 COEFS_HBA1C = {
     "female": {
@@ -71,17 +71,15 @@ def compute_prevent_risk(data: PatientData) -> float:
     gender = "female" if data.sex.lower() == "female" else "male"
     c = COEFS_HBA1C[gender] if use_hba1c else COEFS_BASE[gender]
 
-    # محاكاة تحويلات MDCalc الداخلية لضمان التطابق العشري المطلق
-    # تحويل من mmol/L إلى mg/dL ثم العودة إلى mmol/L عبر معامل AHA (0.02586)
-    tc_mgdl = data.total_chol * 38.67
-    hdl_mgdl = data.hdl * 38.67
-    tc_mmol_eq = tc_mgdl * 0.02586
-    hdl_mmol_eq = hdl_mgdl * 0.02586
+    # الحل الجذري لمشكلة الـ 0% (التعامل الذكي مع الوحدات)
+    # الواجهة لديك ترسل البيانات بـ mg/dL دائماً، لذلك نعيدها إلى mmol/L إذا كانت قيمتها عالية
+    tc_mmol = data.total_chol * 0.02586 if data.total_chol > 30 else data.total_chol
+    hdl_mmol = data.hdl * 0.02586 if data.hdl > 10 else data.hdl
     
     age_c = (data.age - 55.0) / 10.0
-    non_hdl_c = (tc_mmol_eq - hdl_mmol_eq) - 3.5
-    hdl_c_main = (hdl_mmol_eq - 1.3) / 0.3
-    hdl_c_inter = (hdl_mmol_eq - 1.3) / 1.0  
+    non_hdl_c = (tc_mmol - hdl_mmol) - 3.5
+    hdl_c_main = (hdl_mmol - 1.3) / 0.3
+    hdl_c_inter = (hdl_mmol - 1.3) / 1.0  
     
     sbp_low = (min(data.sbp, 110.0) - 110.0) / 20.0
     sbp_high = (max(data.sbp, 110.0) - 130.0) / 20.0
@@ -94,7 +92,7 @@ def compute_prevent_risk(data: PatientData) -> float:
     is_bp_med = 1 if data.bp_med else 0
     is_statin = 1 if data.statin else 0
     
-    # بناء اللوغاريتم الأرجحي بناءً على المصفوفة
+    # بناء اللوغاريتم الأرجحي
     log_odds = c["const"] + \
                (c["age"] * age_c) + \
                (c["non_hdl"] * non_hdl_c) + \
@@ -116,8 +114,8 @@ def compute_prevent_risk(data: PatientData) -> float:
                (c["age_smoker"] * age_c * is_smoker) + \
                (c["age_egfr_low"] * age_c * egfr_low)
 
+    # حساب التراكمي في حال توفره (متمركز عند 5.3)
     if use_hba1c:
-        # التراكمي متمركز عند 5.3 حسب ملحق جمعية القلب
         hba1c_c = data.hba1c - 5.3
         if is_dm:
             log_odds += c["hba1c_dm"] * hba1c_c
