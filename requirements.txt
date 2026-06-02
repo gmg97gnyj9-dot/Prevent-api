@@ -1,4 +1,4 @@
 fastapi
 uvicorn
 pydantic
-pyprevent==0.1.0
+pyprevent==0.1.5
