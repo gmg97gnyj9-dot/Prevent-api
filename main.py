@@ -1,12 +1,10 @@
-import csv
-import os
-import math
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
+import math
 
-app = FastAPI(title="PREVENT Gold Standard Precision API")
+app = FastAPI(title="PREVENT API (Hardcoded Engine)")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class PatientData(BaseModel):
@@ -23,100 +21,17 @@ class PatientData(BaseModel):
     statin: bool
     hba1c: Optional[float] = None
 
-# الهيكل المعماري
-COEFS = {
-    "10yr": {
-        "total_cvd": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "ascvd": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "hf": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "chd": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "stroke": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}}
+# تم حقن معادلات Total CVD 10yr الأصلية مباشرة لضمان عدم تعطلها
+COEFS_10YR_TOTAL = {
+    "male": {
+        "base": {"const": -3.031168, "age": 0.7688528, "non_hdl": 0.0736174, "hdl": -0.0954431, "sbp_low": -0.4347345, "sbp_high": 0.3362658, "dm": 0.7692857, "smoker": 0.4386871, "egfr_low": 0.5378979, "egfr_high": 0.0164827, "bp_med": 0.288879, "statin": -0.1337349, "treated_sbp_high": -0.0475924, "treated_non_hdl": 0.150273, "age_non_hdl": -0.0517874, "age_hdl": 0.0191169, "age_sbp_high": -0.1049477, "age_dm": -0.2251948, "age_smoker": -0.0895067, "age_egfr_low": -0.1543702},
+        "hba1c": {"const": -3.040901, "age": 0.7699177, "non_hdl": 0.0605093, "hdl": -0.0888525, "sbp_low": -0.417713, "sbp_high": 0.3288657, "dm": 0.4759471, "smoker": 0.4385663, "egfr_low": 0.5334616, "egfr_high": 0.0206431, "bp_med": 0.2917524, "statin": -0.1383313, "treated_sbp_high": -0.0482622, "treated_non_hdl": 0.1393796, "age_non_hdl": -0.0463501, "age_hdl": 0.0205926, "age_sbp_high": -0.1037717, "age_dm": -0.1737697, "age_smoker": -0.0915839, "age_egfr_low": -0.1637039, "hba1c_dm": 0.13159, "hba1c_no_dm": 0.1295185}
     },
-    "30yr": {
-        "total_cvd": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "ascvd": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "hf": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "chd": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}},
-        "stroke": {"male": {"base": {}, "hba1c": {}}, "female": {"base": {}, "hba1c": {}}}
+    "female": {
+        "base": {"const": -3.307728, "age": 0.7939329, "non_hdl": 0.0305239, "hdl": -0.1606857, "sbp_low": -0.2394003, "sbp_high": 0.3600781, "dm": 0.8667604, "smoker": 0.5360739, "egfr_low": 0.6045917, "egfr_high": 0.0433769, "bp_med": 0.3151672, "statin": -0.1477655, "treated_sbp_high": -0.0663612, "treated_non_hdl": 0.1197879, "age_non_hdl": -0.0819715, "age_hdl": 0.0306769, "age_sbp_high": -0.0946348, "age_dm": -0.27057, "age_smoker": -0.078715, "age_egfr_low": -0.1637806},
+        "hba1c": {"const": -3.306162, "age": 0.7858178, "non_hdl": 0.0194438, "hdl": -0.1521964, "sbp_low": -0.2296681, "sbp_high": 0.3465777, "dm": 0.5366241, "smoker": 0.5411682, "egfr_low": 0.5931898, "egfr_high": 0.0472458, "bp_med": 0.3158567, "statin": -0.1535174, "treated_sbp_high": -0.0687752, "treated_non_hdl": 0.1054746, "age_non_hdl": -0.0761119, "age_hdl": 0.0307469, "age_sbp_high": -0.0905966, "age_dm": -0.2241857, "age_smoker": -0.080186, "age_egfr_low": -0.1667286, "hba1c_dm": 0.1338348, "hba1c_no_dm": 0.1622409}
     }
 }
-
-# دالة تحليل الأسماء بدقة فائقة لتفادي إزاحة الصفوف
-def parse_row_name(name):
-    name = name.lower()
-    if "constant" in name or "intercept" in name: return "const"
-    if "squared" in name: return "age_sq"
-    if "age per 10" in name and not any(x in name for x in ["non-hdl", "hdl", "sbp", "diabetes", "smoking", "bmi", "egfr"]): return "age"
-    if "treated" in name and "sbp" in name: return "treated_sbp_high"
-    if "treated" in name and "non-hdl" in name: return "treated_non_hdl"
-    if "age" in name and "non-hdl" in name: return "age_non_hdl"
-    if "age" in name and "hdl" in name: return "age_hdl"
-    if "age" in name and "sbp" in name: return "age_sbp_high"
-    if "age" in name and "diabetes" in name: return "age_dm"
-    if "age" in name and "smoking" in name: return "age_smoker"
-    if "age" in name and "bmi" in name: return "age_bmi"
-    if "age" in name and "egfr" in name: return "age_egfr_low"
-    if "non-hdl" in name: return "non_hdl"
-    if "hdl" in name: return "hdl"
-    if "sbp <" in name or "sbp <110" in name: return "sbp_low"
-    if "sbp \u2265" in name or "sbp >=110" in name or "sbp >=" in name or "sbp >= 110" in name: return "sbp_high"
-    if "diabetes" in name: return "dm"
-    if "smoking" in name or "smoker" in name: return "smoker"
-    if "bmi <30" in name or "bmi < 30" in name: return "bmi_low"
-    if "bmi 30+" in name or "bmi >= 30" in name: return "bmi_high"
-    if "egfr <60" in name or "egfr < 60" in name: return "egfr_low"
-    if "egfr 60+" in name or "egfr >= 60" in name: return "egfr_high"
-    if "anti-hypertensive" in name or "bp med" in name: return "bp_med"
-    if "statin" in name: return "statin"
-    if "hba1c in dm" in name or ("hba1c" in name and "no dm" not in name): return "hba1c_dm"
-    if "hba1c no dm" in name or ("hba1c" in name and "no dm" in name): return "hba1c_no_dm"
-    return None
-
-def get_val(row, idx):
-    try:
-        val = str(row[idx]).strip().replace(',', '')
-        if not val or val.lower() in ['na', 'none', '-', '']: return 0.0
-        return float(val)
-    except:
-        return 0.0
-
-def load_csv_coefs():
-    file_mapping = {
-        "10yr": {"base": "base_10.csv", "hba1c": "hba1c_10.csv"},
-        "30yr": {"base": "base_30.csv", "hba1c": "hba1c_30.csv"}
-    }
-    
-    # التوزيع الدقيق للأعمدة بناءً على مستندات AHA
-    col_map = {
-        "total_cvd": {"female": 1, "male": 2},
-        "ascvd":     {"female": 3, "male": 4},
-        "hf":        {"female": 5, "male": 6},
-        "chd":       {"female": 7, "male": 8},
-        "stroke":    {"female": 9, "male": 10}
-    }
-
-    for period, models in file_mapping.items():
-        for model_type, filename in models.items():
-            if not os.path.exists(filename):
-                continue
-            try:
-                with open(filename, mode='r', encoding='utf-8-sig') as f:
-                    reader = csv.reader(f)
-                    for row in reader:
-                        if not row or not str(row[0]).strip(): continue
-                        
-                        key = parse_row_name(row[0])
-                        if not key: continue
-                        
-                        for outcome, genders in col_map.items():
-                            for gender, col_idx in genders.items():
-                                if col_idx < len(row):
-                                    val = get_val(row, col_idx)
-                                    COEFS[period][outcome][gender][model_type][key] = val
-            except Exception as e:
-                print(f"Error parsing {filename}: {str(e)}")
-
-load_csv_coefs()
 
 def compute_all_risks(data: PatientData) -> dict:
     use_hba1c = data.hba1c is not None
@@ -129,15 +44,10 @@ def compute_all_risks(data: PatientData) -> dict:
     age_c = (data.age - 55.0) / 10.0
     non_hdl_c = (tc_mmol - hdl_mmol) - 3.5
     hdl_c = (hdl_mmol - 1.3) / 0.3
-    
     sbp_low = (min(data.sbp, 110.0) - 110.0) / 20.0
     sbp_high = (max(data.sbp, 110.0) - 130.0) / 20.0
-    
     egfr_low = (min(data.egfr, 60.0) - 60.0) / -15.0
     egfr_high = (max(data.egfr, 60.0) - 90.0) / -15.0
-    
-    bmi_low = (min(data.bmi, 30.0) - 25.0) / 5.0
-    bmi_high = (max(data.bmi, 30.0) - 30.0) / 5.0
     
     is_dm = 1 if data.diabetes else 0
     is_smoker = 1 if data.smoker else 0
@@ -145,55 +55,26 @@ def compute_all_risks(data: PatientData) -> dict:
     is_statin = 1 if data.statin else 0
     hba1c_c = (data.hba1c - 5.3) if use_hba1c else 0
 
-    results = {}
+    results = {
+        "prevent_10yr_total_cvd": None, "prevent_10yr_ascvd": None, "prevent_10yr_hf": None, "prevent_10yr_chd": None, "prevent_10yr_stroke": None,
+        "prevent_30yr_total_cvd": None, "prevent_30yr_ascvd": None, "prevent_30yr_hf": None, "prevent_30yr_chd": None, "prevent_30yr_stroke": None
+    }
 
-    for period in ["10yr", "30yr"]:
-        # حماية العمر لـ 30 سنة (حسب توصيات AHA فقط من 30 إلى 59)
-        if period == "30yr" and not (30 <= data.age <= 59):
-            for outcome in ["total_cvd", "ascvd", "hf", "chd", "stroke"]:
-                results[f"prevent_{period}_{outcome}"] = None
-            continue
+    # حساب خطر 10 سنوات الكلي (يعمل دائماً كبديل احتياطي)
+    c = COEFS_10YR_TOTAL[sex][model_type]
+    log_odds = c["const"] + (c["age"] * age_c) + (c["non_hdl"] * non_hdl_c) + (c["hdl"] * hdl_c)
+    log_odds += (c["sbp_low"] * sbp_low) + (c["sbp_high"] * sbp_high) + (c["dm"] * is_dm) + (c["smoker"] * is_smoker)
+    log_odds += (c["egfr_low"] * egfr_low) + (c["egfr_high"] * egfr_high) + (c["bp_med"] * is_bp_med) + (c["statin"] * is_statin)
+    log_odds += (c["treated_sbp_high"] * is_bp_med * sbp_high) + (c["treated_non_hdl"] * is_statin * non_hdl_c)
+    log_odds += (c["age_non_hdl"] * age_c * non_hdl_c) + (c["age_hdl"] * age_c * hdl_c) + (c["age_sbp_high"] * age_c * sbp_high)
+    log_odds += (c["age_dm"] * age_c * is_dm) + (c["age_smoker"] * age_c * is_smoker) + (c["age_egfr_low"] * age_c * egfr_low)
 
-        for outcome in ["total_cvd", "ascvd", "hf", "chd", "stroke"]:
-            key = f"prevent_{period}_{outcome}"
-            c = COEFS[period][outcome][sex].get(model_type, {})
-            
-            if not c or "const" not in c:
-                results[key] = None
-                continue
-
-            log_odds = c.get("const", 0)
-            log_odds += c.get("age", 0) * age_c
-            log_odds += c.get("age_sq", 0) * (age_c ** 2)
-            log_odds += c.get("non_hdl", 0) * non_hdl_c
-            log_odds += c.get("hdl", 0) * hdl_c
-            log_odds += c.get("sbp_low", 0) * sbp_low
-            log_odds += c.get("sbp_high", 0) * sbp_high
-            log_odds += c.get("dm", 0) * is_dm
-            log_odds += c.get("smoker", 0) * is_smoker
-            log_odds += c.get("bmi_low", 0) * bmi_low
-            log_odds += c.get("bmi_high", 0) * bmi_high
-            log_odds += c.get("egfr_low", 0) * egfr_low
-            log_odds += c.get("egfr_high", 0) * egfr_high
-            log_odds += c.get("bp_med", 0) * is_bp_med
-            log_odds += c.get("statin", 0) * is_statin
-            
-            log_odds += c.get("treated_sbp_high", 0) * is_bp_med * sbp_high
-            log_odds += c.get("treated_non_hdl", 0) * is_statin * non_hdl_c
-            log_odds += c.get("age_non_hdl", 0) * age_c * non_hdl_c
-            log_odds += c.get("age_hdl", 0) * age_c * hdl_c
-            log_odds += c.get("age_sbp_high", 0) * age_c * sbp_high
-            log_odds += c.get("age_dm", 0) * age_c * is_dm
-            log_odds += c.get("age_smoker", 0) * age_c * is_smoker
-            log_odds += c.get("age_bmi", 0) * age_c * bmi_high
-            log_odds += c.get("age_egfr_low", 0) * age_c * egfr_low
-
-            if use_hba1c:
-                log_odds += (c.get("hba1c_dm", 0) if is_dm else c.get("hba1c_no_dm", 0)) * hba1c_c
-                
-            risk = 1.0 / (1.0 + math.exp(-log_odds))
-            results[key] = round(risk * 100, 2)
-            
+    if use_hba1c:
+        log_odds += (c["hba1c_dm"] if is_dm else c["hba1c_no_dm"]) * hba1c_c
+        
+    risk = 1.0 / (1.0 + math.exp(-log_odds))
+    results["prevent_10yr_total_cvd"] = round(risk * 100, 2)
+    
     return results
 
 @app.post("/calculate_prevent")
